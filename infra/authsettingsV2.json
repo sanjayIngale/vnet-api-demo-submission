@@ -1,0 +1,38 @@
+{
+  "properties": {
+    "platform": {
+      "enabled": true,
+      "runtimeVersion": "~1"
+    },
+    "globalValidation": {
+      "requireAuthentication": true,
+      "unauthenticatedClientAction": "Return401"
+    },
+    "identityProviders": {
+      "azureActiveDirectory": {
+        "enabled": true,
+        "registration": {
+          "openIdIssuer": "https://login.microsoftonline.com/<tenant-id>/v2.0",
+          "clientId": "<app-client-id>",
+          "clientSecretSettingName": "MICROSOFT_PROVIDER_AUTHENTICATION_SECRET"
+        },
+        "login": {
+          "loginParameters": [
+            "scope=openid profile email"
+          ]
+        },
+        "validation": {
+          "allowedAudiences": [
+            "<app-client-id>",
+            "api://<app-client-id>"
+          ]
+        }
+      }
+    },
+    "login": {
+      "tokenStore": {
+        "enabled": true
+      }
+    }
+  }
+}

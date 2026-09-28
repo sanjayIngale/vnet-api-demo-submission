@@ -1,0 +1,14 @@
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.python_packages/
+.azure/
+local.settings.json
+.env
+.idea/
+.vscode/
+*.pem
+.postman/
+postman/globals/

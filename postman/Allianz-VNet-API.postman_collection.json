@@ -1,0 +1,366 @@
+{
+  "info": {
+    "_postman_id": "56bb2c34-8611-4ef3-bcf4-d7584e524dda",
+    "name": "Allianz VNet API Demo",
+    "description": "Beginner-friendly collection for the Learn-based Azure VNet API. Run Local dry-run while func start is active. For Azure requests, select the supplied environment and put a fresh Entra bearer token only in the accessToken Current value.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Local dry-run",
+      "description": "No authentication and no Azure resources. Requires func start with DRY_RUN=true.",
+      "item": [
+        {
+          "name": "1 - Health",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{localBaseUrl}}/api/health",
+              "host": [
+                "{{localBaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "health"
+              ]
+            },
+            "description": "Confirms the local Function host is running."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Local dry-run is enabled', function () {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.status).to.eql('ok');",
+                  "  pm.expect(body.dryRun).to.eql(true);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "2 - Create VNet (simulated)",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"{{localVnetName}}\",\n  \"location\": \"eastus\",\n  \"resourceGroup\": \"rg-allianz-vnet-demo\",\n  \"addressSpace\": [\"10.40.0.0/16\"],\n  \"subnets\": [\n    { \"name\": \"subnet-app\", \"addressPrefix\": \"10.40.1.0/24\" },\n    { \"name\": \"subnet-db\", \"addressPrefix\": \"10.40.2.0/24\" }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{localBaseUrl}}/api/vnets",
+              "host": [
+                "{{localBaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "vnets"
+              ]
+            },
+            "description": "Creates only a simulated VNet record because DRY_RUN=true."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('HTTP 201', function () { pm.response.to.have.status(201); });",
+                  "pm.test('Simulated VNet contains two subnets', function () {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.dryRun).to.eql(true);",
+                  "  pm.expect(body.subnetIds).to.have.length(2);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "3 - List VNet records",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{localBaseUrl}}/api/vnets",
+              "host": [
+                "{{localBaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "vnets"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('At least one record exists', function () {",
+                  "  pm.expect(pm.response.json().count).to.be.above(0);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "4 - Get VNet record",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{localBaseUrl}}/api/vnets/{{localVnetName}}",
+              "host": [
+                "{{localBaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "vnets",
+                "{{localVnetName}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Correct record returned', function () {",
+                  "  pm.expect(pm.response.json().name).to.eql(pm.environment.get('localVnetName'));",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Azure authenticated demo",
+      "description": "Live Azure calls. The folder uses the accessToken environment value except for the deliberate unauthenticated test.",
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{accessToken}}",
+            "type": "string"
+          }
+        ]
+      },
+      "item": [
+        {
+          "name": "1 - Health without token (expect 401)",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{azureBaseUrl}}/api/health",
+              "host": [
+                "{{azureBaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "health"
+              ]
+            },
+            "description": "Deliberately omits authentication to prove Easy Auth blocks the request."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Anonymous caller is blocked with 401', function () {",
+                  "  pm.response.to.have.status(401);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "2 - Authenticated health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{azureBaseUrl}}/api/health",
+              "host": [
+                "{{azureBaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "health"
+              ]
+            },
+            "description": "Uses the folder bearer token. Expected HTTP 200 and dryRun false."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Deployed API is live', function () {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.status).to.eql('ok');",
+                  "  pm.expect(body.dryRun).to.eql(false);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "3 - List VNet records",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{azureBaseUrl}}/api/vnets",
+              "host": [
+                "{{azureBaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "vnets"
+              ]
+            },
+            "description": "Returns records stored in Azure Table Storage."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Response has count and items', function () {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.count).to.be.a('number');",
+                  "  pm.expect(body.items).to.be.an('array');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "4 - Create VNet with two subnets",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"{{azureVnetName}}\",\n  \"location\": \"{{azureLocation}}\",\n  \"resourceGroup\": \"{{resourceGroup}}\",\n  \"addressSpace\": [\"{{azureAddressSpace}}\"],\n  \"subnets\": [\n    { \"name\": \"subnet-app\", \"addressPrefix\": \"{{azureSubnet1Prefix}}\" },\n    { \"name\": \"subnet-db\", \"addressPrefix\": \"{{azureSubnet2Prefix}}\" }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{azureBaseUrl}}/api/vnets",
+              "host": [
+                "{{azureBaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "vnets"
+              ]
+            },
+            "description": "Creates a real Azure VNet. Confirm the name and CIDRs are unused before selecting Send. Do not click repeatedly."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('HTTP 201', function () { pm.response.to.have.status(201); });",
+                  "pm.test('Real VNet and two subnets created', function () {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.name).to.eql(pm.environment.get('azureVnetName'));",
+                  "  pm.expect(body.dryRun).to.eql(false);",
+                  "  pm.expect(body.subnetIds).to.have.length(2);",
+                  "  pm.expect(body.createdBy).to.be.a('string').and.not.eql('');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "5 - Get created VNet record",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{azureBaseUrl}}/api/vnets/{{azureVnetName}}",
+              "host": [
+                "{{azureBaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "vnets",
+                "{{azureVnetName}}"
+              ]
+            },
+            "description": "Retrieves the Table Storage record for the VNet created by request 4."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Correct persisted record returned', function () {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.name).to.eql(pm.environment.get('azureVnetName'));",
+                  "  pm.expect(body.subnetIds).to.have.length(2);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
